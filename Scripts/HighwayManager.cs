@@ -1,15 +1,27 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Text;
+using System.Net.Sockets;
+using Newtonsoft.Json;
 
 public class HighwayManager : MonoBehaviour
 {
     public GameObject highwaysObj;
     public List<Highway> highways = new List<Highway>();
 
+    public string serverIP = "127.0.0.1"; // Endereço IP do servidor Python
+    public int serverPort = 6060; // Porta do servidor Python
+    public int timeToSendMsg = 2000; //ms
+
+
 
     private void Start()
     {
+        AssignHighwayIDs();
         AddHighwaysInChildren();
+
+        // Inicia o envio das mensagens
+        InvokeRepeating("SendStatusToPython", 0f, (timeToSendMsg / 1000)); // Intervalo de 0.1 segundos (100 ms)
     }
 
     public bool IsHighwayClear(Highway highway)
@@ -74,4 +86,47 @@ public class HighwayManager : MonoBehaviour
             }
         }
     }
+
+    // Função para atribuir IDs únicos a cada rodovia na lista
+    private void AssignHighwayIDs()
+    {
+        for (int i = 0; i < highways.Count; i++)
+        {
+            highways[i].highwayID = i + 1;
+        }
+    }
+
+    // Função para enviar os status das rodovias para o servidor Python
+    private void SendStatusToPython()
+    {
+        foreach (Highway highway in highways)
+        {
+            bool hasAccident = highway.HasAccident();
+            var data = new Dictionary<string, object>
+            {
+                { "highwayID", highway.highwayID },
+                { "status", (hasAccident ? "accident" : "clear") }
+            };
+            string jsonData = JsonConvert.SerializeObject(data);
+            SendTCPMessage(jsonData);
+            Debug.Log("HighwayTcpSend Msg: " + jsonData);
+        }
+    }
+    // Função para enviar uma mensagem TCP para o servidor Python
+    private void SendTCPMessage(string message)
+    {
+        try
+        {
+            TcpClient client = new TcpClient(serverIP, serverPort);
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            NetworkStream stream = client.GetStream();
+            stream.Write(data, 0, data.Length);
+            client.Close();
+        }
+        catch (System.Exception e)
+        {
+            Debug.Log("Error sending TCP message: " + e.Message);
+        }
+    }
+
 }

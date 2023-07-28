@@ -8,13 +8,15 @@ public class CarSpawn : MonoBehaviour
 
     private float spawnTimer;
     private HighwayManager highwayManager;
+    public KafkaConsumer kafkaConsumer; // Variável para armazenar a instância do KafkaConsumer
 
     private void Start()
     {
         maxCarsPerHighway = 5;
-        spawnInterval = 3f;
+        spawnInterval = 5f;
         highwayManager = FindObjectOfType<HighwayManager>();
         spawnTimer = spawnInterval;
+        kafkaConsumer = FindObjectOfType<KafkaConsumer>();
     }
 
     private void Update()
